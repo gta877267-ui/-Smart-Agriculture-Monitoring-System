@@ -7,6 +7,10 @@ Project Members
 * Salem Ibrahim Al-Saadi — 445002653
 * Hamed Abdullah Al-Omari — 446000134
 
+project wibsite:
+https://gta877267-ui.github.io/-Smart-Agriculture-Monitoring-System/
+
+
 Project Description
 
 The Smart Agriculture Monitoring System is a software engineering project developed to support farm management and agricultural monitoring activities. The system allows users to manage farms, fields, sensors, crops, and irrigation schedules through an organized and user-friendly interface.
