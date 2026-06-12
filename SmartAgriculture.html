@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام مراقبة الزراعة الذكية | Smart Agriculture Monitoring System</title>
+<style>
+  /* ============================================================
+     نظام الألوان والمتغيرات العامة (Design Tokens)
+     ============================================================ */
+  :root{
+    --color-bg:#F3F6EF;
+    --color-surface:#FFFFFF;
+    --color-surface-2:#FBFCF9;
+    --color-primary:#33523B;
+    --color-primary-light:#5E8762;
+    --color-primary-pale:#E4ECDF;
+    --color-accent:#C17F37;
+    --color-accent-pale:#F4E3CE;
+    --color-water:#3E7CA6;
+    --color-water-pale:#DCEBF4;
+    --color-text:#21281F;
+    --color-muted:#6E7C68;
+    --color-border:#DCE4D5;
+    --color-danger:#B0463C;
+    --color-danger-pale:#F6E2DF;
+    --color-success:#3F7D4E;
+    --radius-sm:6px;
+    --radius-md:12px;
+    --radius-lg:18px;
+    --shadow-1: 0 1px 3px rgba(33,40,31,0.08);
+    --shadow-2: 0 8px 24px rgba(33,40,31,0.12);
+    --sidebar-w: 248px;
+    --font-main: -apple-system, "Segoe UI", "Tahoma", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{ height:100%; }
+
+  body{
+    font-family: var(--font-main);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ============================================================
+     تخطيط الصفحة العام (App Shell)
+     ============================================================ */
+  .app{
+    display:flex;
+    min-height:100vh;
+  }
+
+  /* ---------- الشريط الجانبي ---------- */
+  .sidebar{
+    width: var(--sidebar-w);
+    background: linear-gradient(180deg, var(--color-primary) 0%, #28402E 100%);
+    color:#EFF4EC;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+
+  .sidebar-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:22px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+
+  .sidebar-brand .leaf{
+    width:34px; height:34px; flex-shrink:0;
+  }
+
+  .sidebar-brand h1{
+    font-size:15px;
+    font-weight:700;
+    line-height:1.3;
+  }
+
+  .sidebar-brand span{
+    display:block;
+    font-size:11px;
+    font-weight:400;
+    color:#C9D8C5;
+    margin-top:2px;
+  }
+
+  .nav-list{
+    list-style:none;
+    padding:14px 10px;
+    flex:1;
+  }
+
+  .nav-list li + li{ margin-top:4px; }
+
+  .nav-link{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    padding:11px 14px;
+    border:none;
+    background:transparent;
+    color:#DCE8D9;
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:500;
+    text-align:right;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+
+  .nav-link:hover{
+    background: rgba(255,255,255,0.08);
+    color:#fff;
+  }
+
+  .nav-link.active{
+    background: var(--color-accent);
+    color:#fff;
+    font-weight:700;
+  }
+
+  .nav-link .ic{ font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+
+  .sidebar-footer{
+    padding:14px 20px;
+    font-size:11px;
+    color:#A9C0A4;
+    border-top:1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ---------- المحتوى الرئيسي ---------- */
+  .main{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .topbar{
+    background: var(--color-surface);
+    border-bottom:1px solid var(--color-border);
+    padding:18px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    position:sticky;
+    top:0;
+    z-index:5;
+  }
+
+  .topbar h2{
+    font-size:19px;
+    font-weight:700;
+    color:var(--color-primary);
+  }
+
+  .topbar p{
+    font-size:12.5px;
+    color:var(--color-muted);
+    margin-top:2px;
+  }
+
+  .topbar .menu-toggle{
+    display:none;
+    background:var(--color-primary);
+    color:#fff;
+    border:none;
+    border-radius:var(--radius-sm);
+    padding:8px 12px;
+    font-size:16px;
+    cursor:pointer;
+  }
+
+  .content{
+    padding:24px 28px 60px;
+    flex:1;
+  }
+
+  .page{ display:none; animation: fadeIn .25s ease; }
+  .page.active{ display:block; }
+
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ============================================================
+     مكونات عامة: بطاقات، أزرار، شارات
+     ============================================================ */
+  .cards-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:16px;
+    margin-bottom:24px;
+  }
+
+  .card{
+    background:var(--color-surface);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-md);
+    padding:18px 18px;
+    box-shadow:var(--shadow-1);
+  }
+
+  .card .card-icon{
+    width:38px; height:38px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+    margin-bottom:10px;
+    background:var(--color-primary-pale);
+    color:var(--color-primary);
+  }
+
+  .card.accent .card-icon{ background:var(--color-accent-pale); color:var(--color-accent); }
+  .card.water .card-icon{ background:var(--color-water-pale); color:var(--color-water); }
+
+  .card .num{
+    font-size:28px;
+    font-weight:800;
+    color:var(--color-text);
+    line-height:1;
+  }
+
+  .card .lbl{
+    font-size:12.5px;
+    color:var(--color-muted);
+    margin-top:6px;
+  }
+
+  .section-block{
+    background:var(--color-surface);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-md);
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:var(--shadow-1);
+  }
+
+  .section-block h3{
+    font-size:15px;
+    font-weight:700;
+    color:var(--color-primary);
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom:16px;
+  }
+
+  .toolbar .field-group{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:160px;
+  }
+
+  .toolbar label{ font-size:11.5px; color:var(--color-muted); font-weight:600; }
+
+  select, input, textarea{
+    font-family:inherit;
+    font-size:13.5px;
+    padding:9px 11px;
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-sm);
+    background:var(--color-surface-2);
+    color:var(--color-text);
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+
+  select:focus, input:focus, textarea:focus{
+    border-color: var(--color-primary-light);
+    box-shadow:0 0 0 3px rgba(94,135,98,0.18);
+  }
+
+  /* ---------- أزرار ---------- */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:700;
+    padding:9px 16px;
+    border-radius:var(--radius-sm);
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .08s ease, filter .15s ease, background .15s ease;
+    white-space:nowrap;
+  }
+
+  .btn:active{ transform:translateY(1px); }
+
+  .btn-primary{ background:var(--color-primary); color:#fff; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+
+  .btn-accent{ background:var(--color-accent); color:#fff; }
+  .btn-accent:hover{ filter:brightness(1.06); }
+
+  .btn-water{ background:var(--color-water); color:#fff; }
+  .btn-water:hover{ filter:brightness(1.06); }
+
+  .btn-outline{ background:transparent; border:1px solid var(--color-border); color:var(--color-text); }
+  .btn-outline:hover{ background:var(--color-primary-pale); }
+
+  .btn-danger{ background:var(--color-danger); color:#fff; }
+  .btn-danger:hover{ filter:brightness(1.08); }
+
+  .btn-sm{ padding:6px 10px; font-size:12px; border-radius:6px; }
+
+  /* ---------- الجداول ---------- */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--color-border); border-radius:var(--radius-sm); }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+
+  thead th{
+    background:var(--color-primary-pale);
+    color:var(--color-primary);
+    font-weight:700;
+    text-align:right;
+    padding:10px 12px;
+    border-bottom:1px solid var(--color-border);
+    white-space:nowrap;
+  }
+
+  tbody td{
+    padding:10px 12px;
+    border-bottom:1px solid var(--color-border);
+    vertical-align:middle;
+  }
+
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--color-surface-2); }
+
+  .empty-row td{
+    text-align:center;
+    color:var(--color-muted);
+    padding:26px 10px;
+    font-size:13px;
+  }
+
+  .row-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+
+  /* ---------- شارات الحالة ---------- */
+  .badge{
+    display:inline-block;
+    font-size:11.5px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:999px;
+  }
+  .badge-active{ background:#E1F0E3; color:var(--color-success); }
+  .badge-inactive{ background:var(--color-danger-pale); color:var(--color-danger); }
+  .badge-maint{ background:var(--color-accent-pale); color:var(--color-accent); }
+  .badge-neutral{ background:var(--color-primary-pale); color:var(--color-primary); }
+  .badge-water{ background:var(--color-water-pale); color:var(--color-water); }
+
+  /* ---------- التنبيهات ---------- */
+  #alertHost{
+    position:fixed;
+    top:18px;
+    left:18px;
+    z-index:1000;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-width:340px;
+  }
+
+  .alert{
+    padding:12px 16px;
+    border-radius:var(--radius-sm);
+    font-size:13px;
+    font-weight:600;
+    box-shadow:var(--shadow-2);
+    animation: slideIn .2s ease;
+    border:1px solid transparent;
+  }
+
+  .alert-success{ background:#EAF6EC; color:var(--color-success); border-color:#BEE3C5; }
+  .alert-error{ background:var(--color-danger-pale); color:var(--color-danger); border-color:#E6BEB8; }
+
+  @keyframes slideIn{ from{opacity:0; transform:translateX(-12px);} to{opacity:1; transform:translateX(0);} }
+
+  /* ---------- النوافذ المنبثقة (Modal) ---------- */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(33,40,31,0.45);
+    display:flex; align-items:center; justify-content:center;
+    z-index:900;
+    padding:16px;
+  }
+  .modal-overlay.hidden{ display:none; }
+
+  .modal{
+    background:var(--color-surface);
+    border-radius:var(--radius-lg);
+    width:100%;
+    max-width:440px;
+    max-height:90vh;
+    overflow-y:auto;
+    box-shadow:var(--shadow-2);
+    animation: fadeIn .2s ease;
+  }
+
+  .modal-header{
+    padding:18px 22px;
+    border-bottom:1px solid var(--color-border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .modal-header h3{ font-size:16px; color:var(--color-primary); font-weight:800; }
+
+  .modal-close{
+    background:none; border:none; font-size:20px; cursor:pointer; color:var(--color-muted);
+    line-height:1;
+  }
+
+  .modal-body{ padding:18px 22px; display:flex; flex-direction:column; gap:14px; }
+
+  .modal-body .field-group{ display:flex; flex-direction:column; gap:5px; }
+  .modal-body label{ font-size:12.5px; font-weight:700; color:var(--color-text); }
+  .modal-body select, .modal-body input, .modal-body textarea{ width:100%; }
+
+  .modal-footer{
+    padding:16px 22px 22px;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+  }
+
+  .hint{ font-size:12px; color:var(--color-muted); margin-top:-6px; }
+
+  .tree{
+    border-right:3px solid var(--color-primary-light);
+    padding-right:14px;
+    margin:10px 0 18px;
+  }
+
+  .tree .tree-item{
+    background:var(--color-surface-2);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+
+  .tree .tree-item h4{
+    font-size:13.5px; color:var(--color-primary); font-weight:800; margin-bottom:6px;
+  }
+
+  .tree .tree-item .meta{ font-size:12px; color:var(--color-muted); margin-bottom:8px; }
+
+  .mini-table{ width:100%; font-size:12px; border-collapse:collapse; margin-top:6px; }
+  .mini-table th{ text-align:right; color:var(--color-muted); font-weight:700; padding:4px 6px; border-bottom:1px solid var(--color-border); }
+  .mini-table td{ padding:5px 6px; border-bottom:1px dashed var(--color-border); }
+  .mini-table tr:last-child td{ border-bottom:none; }
+
+  .empty-state{
+    text-align:center;
+    padding:40px 16px;
+    color:var(--color-muted);
+    font-size:13.5px;
+  }
+
+  .empty-state .ic{ font-size:34px; display:block; margin-bottom:10px; }
+
+  /* ---------- استجابة الشاشات الصغيرة ---------- */
+  @media (max-width: 880px){
+    .sidebar{
+      position:fixed;
+      right:0; top:0;
+      transform: translateX(100%);
+      transition: transform .2s ease;
+      z-index:200;
+      width:220px;
+      box-shadow:var(--shadow-2);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .topbar .menu-toggle{ display:inline-flex; }
+    .content{ padding:18px 14px 50px; }
+    .topbar{ padding:14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- حاوية التنبيهات العائمة (تُستخدم لعرض رسائل النجاح والخطأ) -->
+<div id="alertHost"></div>
+
+<div class="app">
+
+  <!-- ============================================================
+       الشريط الجانبي - يحتوي على شعار النظام وقائمة التنقل
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <svg class="leaf" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 39C9 24 20 12 39 9C39 24 31 39 9 39Z" fill="#7FAE7E"/>
+        <path d="M9 39C12 28 18 19 35 12" stroke="#33523B" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="36" cy="32" r="3" fill="#3E7CA6"/>
+      </svg>
+      <div>
+        <h1>نظام مراقبة الزراعة الذكية</h1>
+        <span>Smart Agriculture Monitoring</span>
+      </div>
+    </div>
+
+    <ul class="nav-list" id="navList">
+      <li><button class="nav-link active" data-page="dashboard"><span class="ic">📊</span> لوحة التحكم</button></li>
+      <li><button class="nav-link" data-page="farms"><span class="ic">🌾</span> إدارة المزارع</button></li>
+      <li><button class="nav-link" data-page="fields"><span class="ic">🗂️</span> إدارة الحقول</button></li>
+      <li><button class="nav-link" data-page="sensors"><span class="ic">📡</span> إدارة المستشعرات</button></li>
+      <li><button class="nav-link" data-page="readings"><span class="ic">📈</span> قراءات المستشعرات</button></li>
+      <li><button class="nav-link" data-page="crops"><span class="ic">🌱</span> إدارة المحاصيل</button></li>
+      <li><button class="nav-link" data-page="irrigation"><span class="ic">💧</span> جداول الري</button></li>
+      <li><button class="nav-link" data-page="report"><span class="ic">📋</span> التقرير الكامل</button></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      مشروع هندسة البرمجيات الجامعي<br>
+      © Smart Agriculture System
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       المحتوى الرئيسي
+       ============================================================ -->
+  <div class="main">
+
+    <header class="topbar">
+      <div>
+        <h2 id="pageTitle">لوحة التحكم</h2>
+        <p id="pageSubtitle">نظرة عامة على حالة النظام الزراعي بالكامل</p>
+      </div>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+    </header>
+
+    <main class="content">
+
+      <!-- ====================== صفحة لوحة التحكم ====================== -->
+      <section class="page active" id="page-dashboard">
+        <div class="cards-grid" id="dashboardCards"></div>
+
+        <div class="section-block">
+          <h3>📈 آخر القراءات المسجلة</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>المزرعة</th>
+                  <th>الحقل</th>
+                  <th>المستشعر</th>
+                  <th>الرطوبة %</th>
+                  <th>الحرارة °C</th>
+                  <th>الوقت</th>
+                </tr>
+              </thead>
+              <tbody id="recentReadingsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة إدارة المزارع ====================== -->
+      <section class="page" id="page-farms">
+        <div class="section-block">
+          <h3>🌾 قائمة المزارع</h3>
+          <div class="toolbar">
+            <button class="btn btn-primary" onclick="openFarmModal()">+ إضافة مزرعة جديدة</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>اسم المزرعة</th><th>الموقع</th><th>عدد الحقول</th><th>العمليات</th>
+                </tr>
+              </thead>
+              <tbody id="farmsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة إدارة الحقول ====================== -->
+      <section class="page" id="page-fields">
+        <div class="section-block">
+          <h3>🗂️ قائمة الحقول</h3>
+          <div class="toolbar">
+            <div class="field-group">
+              <label>اختر المزرعة</label>
+              <select id="fieldsFarmSelect" onchange="renderFieldsTable()"></select>
+            </div>
+            <div class="field-group" style="align-self:flex-end;">
+              <button class="btn btn-primary" onclick="openFieldModal()">+ إضافة حقل جديد</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>اسم الحقل</th><th>المساحة (هكتار)</th><th>المستشعرات</th><th>المحاصيل</th><th>جداول الري</th><th>العمليات</th>
+                </tr>
+              </thead>
+              <tbody id="fieldsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة إدارة المستشعرات ====================== -->
+      <section class="page" id="page-sensors">
+        <div class="section-block">
+          <h3>📡 قائمة المستشعرات</h3>
+          <div class="toolbar">
+            <div class="field-group">
+              <label>المزرعة</label>
+              <select id="sensorsFarmSelect" onchange="onSensorsFarmChange()"></select>
+            </div>
+            <div class="field-group">
+              <label>الحقل</label>
+              <select id="sensorsFieldSelect" onchange="renderSensorsTable()"></select>
+            </div>
+            <div class="field-group" style="align-self:flex-end;">
+              <button class="btn btn-primary" onclick="openSensorModal()">+ إضافة مستشعر</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>نوع المستشعر</th><th>الحالة</th><th>عدد القراءات</th><th>آخر قراءة</th><th>العمليات</th>
+                </tr>
+              </thead>
+              <tbody id="sensorsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة قراءات المستشعرات ====================== -->
+      <section class="page" id="page-readings">
+        <div class="section-block">
+          <h3>📈 قراءات المستشعرات</h3>
+          <div class="toolbar">
+            <div class="field-group">
+              <label>المزرعة</label>
+              <select id="readingsFarmSelect" onchange="onReadingsFarmChange()"></select>
+            </div>
+            <div class="field-group">
+              <label>الحقل</label>
+              <select id="readingsFieldSelect" onchange="onReadingsFieldChange()"></select>
+            </div>
+            <div class="field-group">
+              <label>المستشعر</label>
+              <select id="readingsSensorSelect" onchange="renderReadingsTable()"></select>
+            </div>
+            <div class="field-group" style="align-self:flex-end;">
+              <button class="btn btn-water" onclick="addReadingForSelectedSensor()">+ تسجيل قراءة جديدة</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>مستوى الرطوبة %</th><th>درجة الحرارة °C</th><th>وقت القراءة</th>
+                </tr>
+              </thead>
+              <tbody id="readingsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة إدارة المحاصيل ====================== -->
+      <section class="page" id="page-crops">
+        <div class="section-block">
+          <h3>🌱 إدارة المحاصيل</h3>
+          <div class="toolbar">
+            <div class="field-group">
+              <label>المزرعة</label>
+              <select id="cropsFarmSelect" onchange="onCropsFarmChange()"></select>
+            </div>
+            <div class="field-group">
+              <label>الحقل</label>
+              <select id="cropsFieldSelect" onchange="renderCropsTable()"></select>
+            </div>
+            <div class="field-group" style="align-self:flex-end;">
+              <button class="btn btn-primary" onclick="openCropModal()">+ إضافة محصول</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>اسم المحصول</th><th>النوع</th><th>تاريخ الزراعة</th><th>الحالة</th><th>العمليات</th>
+                </tr>
+              </thead>
+              <tbody id="cropsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة جداول الري ====================== -->
+      <section class="page" id="page-irrigation">
+        <div class="section-block">
+          <h3>💧 جداول الري</h3>
+          <div class="toolbar">
+            <div class="field-group">
+              <label>المزرعة</label>
+              <select id="irrFarmSelect" onchange="onIrrFarmChange()"></select>
+            </div>
+            <div class="field-group">
+              <label>الحقل</label>
+              <select id="irrFieldSelect" onchange="renderIrrigationTable()"></select>
+            </div>
+            <div class="field-group" style="align-self:flex-end;">
+              <button class="btn btn-water" onclick="openIrrigationModal()">+ إنشاء جدول ري</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>تاريخ الري</th><th>كمية المياه (لتر)</th><th>الحالة</th><th>ملاحظات</th><th>العمليات</th>
+                </tr>
+              </thead>
+              <tbody id="irrigationBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== صفحة التقرير الكامل ====================== -->
+      <section class="page" id="page-report">
+        <div class="section-block">
+          <h3>📋 عرض معلومات المزرعة الكاملة</h3>
+          <div class="toolbar">
+            <div class="field-group">
+              <label>اختر المزرعة</label>
+              <select id="reportFarmSelect" onchange="renderReport()"></select>
+            </div>
+          </div>
+          <div id="reportContainer"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================
+     النافذة المنبثقة العامة (تُستخدم لجميع نماذج الإضافة والتعديل)
+     ============================================================ -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">عنوان النافذة</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <form id="modalForm">
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+        <button type="submit" class="btn btn-primary" id="modalSubmitBtn">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   ===================  الجزء البرمجي (JavaScript)  ===============
+   ================================================================
+   يتبع هذا النظام مبادئ البرمجة الكائنية (OOP):
+   - كل كيان في النظام (مزرعة، حقل، مستشعر...) عبارة عن كلاس مستقل
+   - كل كلاس يحتوي على بياناته الخاصة (Encapsulation) ودوال للتعامل معها
+   - العلاقات بين الكلاسات تُمثَّل عبر التركيب (Composition):
+     Farm يحتوي على Field[]
+     Field يحتوي على Sensor[] و Crop[] و IrrigationSchedule[]
+     Sensor يحتوي على SensorReading[]
+   ================================================================ */
+
+
+/* ----------------------------------------------------------------
+   كلاس SensorReading
+   يمثل قراءة واحدة لمستشعر معين (رطوبة + حرارة + وقت القراءة)
+   ---------------------------------------------------------------- */
+class SensorReading {
+  // المُنشئ: ينشئ قراءة جديدة بمعرف تلقائي ووقت القراءة الحالي
+  constructor(moisture, temperature) {
+    this.id = SensorReading.nextId++;          // معرف فريد للقراءة
+    this.moisture = moisture;                  // مستوى الرطوبة %
+    this.temperature = temperature;            // درجة الحرارة °C
+    this.timestamp = new Date();                // وقت أخذ القراءة
+  }
+
+  // دالة لتنسيق وقت القراءة كنص قابل للعرض
+  formattedTime() {
+    // هذه الدالة تحول كائن التاريخ إلى نص منسق يسهل قراءته
+    const d = this.timestamp;
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+}
+SensorReading.nextId = 1; // عداد ثابت لتوليد معرفات فريدة لجميع القراءات
+
+
+/* ----------------------------------------------------------------
+   كلاس Sensor
+   يمثل مستشعرًا فيزيائيًا (رطوبة/حرارة/ضوء) مثبتًا في حقل معين
+   يحتفظ بقائمة كاملة من القراءات (SensorReading[])
+   ---------------------------------------------------------------- */
+class Sensor {
+  // المُنشئ: ينشئ مستشعرًا جديدًا بنوع وحالة ابتدائية
+  constructor(type, status) {
+    this.id = Sensor.nextId++;            // معرف فريد للمستشعر
+    this.type = type;                     // نوع المستشعر (رطوبة، حرارة...)
+    this.status = status || 'نشط';        // حالة المستشعر
+    this.readings = [];                   // قائمة قراءات المستشعر (Composition)
+  }
+
+  // هذه الدالة مسؤولة عن إضافة قراءة جديدة للمستشعر وتخزينها في القائمة
+  addReading(moisture, temperature) {
+    const reading = new SensorReading(moisture, temperature);
+    this.readings.push(reading);
+    return reading;
+  }
+
+  // هذه الدالة مسؤولة عن تغيير حالة المستشعر (نشط / غير نشط / صيانة)
+  changeStatus(newStatus) {
+    this.status = newStatus;
+  }
+
+  // هذه الدالة تعيد آخر قراءة مسجلة للمستشعر، أو null إذا لم توجد قراءات
+  latestReading() {
+    if (this.readings.length === 0) return null;
+    return this.readings[this.readings.length - 1];
+  }
+}
+Sensor.nextId = 1; // عداد ثابت لتوليد معرفات فريدة لجميع المستشعرات
+
+
+/* ----------------------------------------------------------------
+   كلاس Crop
+   يمثل محصولًا زراعيًا مزروعًا في حقل معين
+   ---------------------------------------------------------------- */
+class Crop {
+  // المُنشئ: ينشئ محصولًا جديدًا ببياناته الكاملة
+  constructor(name, type, plantingDate, status) {
+    this.id = Crop.nextId++;                 // معرف فريد للمحصول
+    this.name = name;                        // اسم المحصول
+    this.type = type;                        // نوع المحصول (خضروات، حبوب...)
+    this.plantingDate = plantingDate;        // تاريخ الزراعة
+    this.status = status || 'ينمو';           // حالة المحصول
+  }
+
+  // هذه الدالة مسؤولة عن تحديث بيانات المحصول (اسم، نوع، حالة)
+  update(name, type, status) {
+    if (name) this.name = name;
+    if (type) this.type = type;
+    if (status) this.status = status;
+  }
+}
+Crop.nextId = 1; // عداد ثابت لتوليد معرفات فريدة لجميع المحاصيل
+
+
+/* ----------------------------------------------------------------
+   كلاس IrrigationSchedule
+   يمثل جدول ري مخصص لحقل معين (تاريخ + كمية مياه + حالة)
+   ---------------------------------------------------------------- */
+class IrrigationSchedule {
+  // المُنشئ: ينشئ جدول ري جديد ببياناته الكاملة
+  constructor(date, amount, notes, status) {
+    this.id = IrrigationSchedule.nextId++;   // معرف فريد لجدول الري
+    this.date = date;                        // تاريخ الري المقرر
+    this.amount = amount;                    // كمية المياه باللتر
+    this.notes = notes || '';                // ملاحظات إضافية
+    this.status = status || 'مجدول';          // حالة الجدول
+  }
+
+  // هذه الدالة مسؤولة عن تحديث بيانات جدول الري
+  update(date, amount, notes, status) {
+    if (date) this.date = date;
+    if (amount !== null && amount !== undefined && amount !== '') this.amount = Number(amount);
+    if (notes !== null && notes !== undefined) this.notes = notes;
+    if (status) this.status = status;
+  }
+}
+IrrigationSchedule.nextId = 1; // عداد ثابت لتوليد معرفات فريدة لجميع جداول الري
+
+
+/* ----------------------------------------------------------------
+   كلاس Field
+   يمثل حقلًا زراعيًا تابعًا لمزرعة معينة
+   يحتوي على قوائم: المستشعرات، المحاصيل، جداول الري (Composition)
+   ---------------------------------------------------------------- */
+class Field {
+  // المُنشئ: ينشئ حقلًا جديدًا باسم ومساحة محددة
+  constructor(name, area) {
+    this.id = Field.nextId++;             // معرف فريد للحقل
+    this.name = name;                     // اسم الحقل
+    this.area = Number(area);             // مساحة الحقل بالهكتار
+    this.sensors = [];                    // قائمة المستشعرات في الحقل
+    this.crops = [];                      // قائمة المحاصيل في الحقل
+    this.schedules = [];                  // قائمة جداول الري في الحقل
+  }
+
+  // هذه الدالة مسؤولة عن إضافة مستشعر جديد إلى الحقل وإعادته
+  addSensor(type, status) {
+    const sensor = new Sensor(type, status);
+    this.sensors.push(sensor);
+    return sensor;
+  }
+
+  // هذه الدالة مسؤولة عن حذف مستشعر من الحقل بالاعتماد على معرفه
+  removeSensor(sensorId) {
+    this.sensors = this.sensors.filter(s => s.id !== sensorId);
+  }
+
+  // هذه الدالة مسؤولة عن إضافة محصول جديد إلى الحقل وإعادته
+  addCrop(name, type, plantingDate, status) {
+    const crop = new Crop(name, type, plantingDate, status);
+    this.crops.push(crop);
+    return crop;
+  }
+
+  // هذه الدالة مسؤولة عن حذف محصول من الحقل بالاعتماد على معرفه
+  removeCrop(cropId) {
+    this.crops = this.crops.filter(c => c.id !== cropId);
+  }
+
+  // هذه الدالة مسؤولة عن إنشاء جدول ري جديد وإضافته للحقل
+  addSchedule(date, amount, notes, status) {
+    const sched = new IrrigationSchedule(date, amount, notes, status);
+    this.schedules.push(sched);
+    return sched;
+  }
+
+  // هذه الدالة مسؤولة عن حذف جدول ري من الحقل بالاعتماد على معرفه
+  removeSchedule(scheduleId) {
+    this.schedules = this.schedules.filter(s => s.id !== scheduleId);
+  }
+
+  // هذه الدالة مسؤولة عن تحديث بيانات الحقل الأساسية (الاسم والمساحة)
+  update(name, area) {
+    if (name) this.name = name;
+    if (area !== null && area !== undefined && area !== '') this.area = Number(area);
+  }
+}
+Field.nextId = 1; // عداد ثابت لتوليد معرفات فريدة لجميع الحقول
+
+
+/* ----------------------------------------------------------------
+   كلاس Farm
+   يمثل مزرعة تحتوي على عدة حقول زراعية (Composition مع Field)
+   ---------------------------------------------------------------- */
+class Farm {
+  // المُنشئ: ينشئ مزرعة جديدة باسم وموقع محددين
+  constructor(name, location) {
+    this.id = Farm.nextId++;          // معرف فريد للمزرعة
+    this.name = name;                 // اسم المزرعة
+    this.location = location;         // موقع المزرعة
+    this.fields = [];                 // قائمة الحقول التابعة للمزرعة
+  }
+
+  // هذه الدالة مسؤولة عن إضافة حقل جديد إلى المزرعة وإعادته
+  addField(name, area) {
+    const field = new Field(name, area);
+    this.fields.push(field);
+    return field;
+  }
+
+  // هذه الدالة مسؤولة عن حذف حقل من المزرعة بالاعتماد على معرفه
+  removeField(fieldId) {
+    this.fields = this.fields.filter(f => f.id !== fieldId);
+  }
+
+  // هذه الدالة مسؤولة عن تحديث بيانات المزرعة الأساسية (الاسم والموقع)
+  update(name, location) {
+    if (name) this.name = name;
+    if (location) this.location = location;
+  }
+}
+Farm.nextId = 1; // عداد ثابت لتوليد معرفات فريدة لجميع المزارع
+
+
+/* ================================================================
+   ===================  مخزن البيانات العام  =======================
+   ================================================================ */
+
+// المصفوفة الرئيسية التي تخزن جميع المزارع في النظام (In-Memory Storage)
+let farms = [];
+
+
+/* ----------------------------------------------------------------
+   هذه الدالة مسؤولة عن إنشاء بيانات تجريبية مبدئية عند تشغيل النظام
+   تُستخدم لأغراض العرض التجريبي والاختبار اليدوي للنظام
+   ---------------------------------------------------------------- */
+function seedSampleData() {
+  // ----- المزرعة الأولى: مزرعة النخيل -----
+  const farm1 = new Farm('مزرعة النخيل', 'الرياض - حي الروضة');
+
+  const f1 = farm1.addField('حقل القمح الشمالي', 5);
+  const s1 = f1.addSensor('مستشعر رطوبة', 'نشط');
+  s1.addReading(42.5, 26.3);
+  s1.addReading(39.8, 27.1);
+  const s2 = f1.addSensor('مستشعر حرارة', 'نشط');
+  s2.addReading(35.0, 31.4);
+  f1.addCrop('قمح', 'حبوب', '2024-11-01', 'ينمو');
+  f1.addSchedule('2025-02-10', 500, 'ري صباحي', 'مجدول');
+
+  const f2 = farm1.addField('حقل الطماطم الجنوبي', 3.5);
+  const s3 = f2.addSensor('مستشعر رطوبة', 'نشط');
+  s3.addReading(55.2, 24.8);
+  f2.addCrop('طماطم', 'خضروات', '2024-12-01', 'ينمو');
+  f2.addCrop('فلفل', 'خضروات', '2024-12-15', 'ينمو');
+  f2.addSchedule('2025-02-11', 300, 'ري مسائي', 'مجدول');
+
+  farms.push(farm1);
+
+  // ----- المزرعة الثانية: مزرعة الواحة -----
+  const farm2 = new Farm('مزرعة الواحة', 'المدينة المنورة - العوالي');
+
+  const f3 = farm2.addField('حقل النخيل الشرقي', 8);
+  const s4 = f3.addSensor('مستشعر رطوبة', 'نشط');
+  s4.addReading(48.0, 29.0);
+  const s5 = f3.addSensor('مستشعر حرارة', 'صيانة');
+  const s6 = f3.addSensor('مستشعر ضوء', 'غير نشط');
+  f3.addCrop('نخيل', 'أشجار', '2023-06-01', 'ينمو');
+  f3.addSchedule('2025-02-12', 800, 'ري أسبوعي', 'مكتمل');
+
+  farms.push(farm2);
+}
+
+
+/* ================================================================
+   ===================  دوال مساعدة للبحث  =========================
+   ================================================================ */
+
+// هذه الدالة تبحث عن مزرعة في القائمة الرئيسية بالاعتماد على معرفها
+function findFarm(farmId) {
+  return farms.find(f => f.id === Number(farmId)) || null;
+}
+
+// هذه الدالة تبحث عن حقل داخل مزرعة معينة بالاعتماد على معرفه
+function findField(farm, fieldId) {
+  if (!farm) return null;
+  return farm.fields.find(f => f.id === Number(fieldId)) || null;
+}
+
+// هذه الدالة تبحث عن مستشعر داخل حقل معين بالاعتماد على معرفه
+function findSensor(field, sensorId) {
+  if (!field) return null;
+  return field.sensors.find(s => s.id === Number(sensorId)) || null;
+}
+
+// هذه الدالة تبحث عن محصول داخل حقل معين بالاعتماد على معرفه
+function findCrop(field, cropId) {
+  if (!field) return null;
+  return field.crops.find(c => c.id === Number(cropId)) || null;
+}
+
+// هذه الدالة تبحث عن جدول ري داخل حقل معين بالاعتماد على معرفه
+function findSchedule(field, scheduleId) {
+  if (!field) return null;
+  return field.schedules.find(s => s.id === Number(scheduleId)) || null;
+}
+
+
+/* ================================================================
+   ===================  نظام التنبيهات (Alerts)  ===================
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن عرض رسالة تنبيه عائمة (نجاح أو خطأ) ثم إخفائها تلقائيًا
+function showAlert(message, type) {
+  const host = document.getElementById('alertHost');
+  const box = document.createElement('div');
+  box.className = 'alert ' + (type === 'error' ? 'alert-error' : 'alert-success');
+  box.textContent = (type === 'error' ? '✘ ' : '✔ ') + message;
+  host.appendChild(box);
+  setTimeout(() => {
+    box.style.opacity = '0';
+    box.style.transition = 'opacity .3s ease';
+    setTimeout(() => box.remove(), 300);
+  }, 2600);
+}
+
+
+/* ================================================================
+   ===================  نظام التنقل بين الصفحات  ===================
+   ================================================================ */
+
+// عناوين وأوصاف كل صفحة لعرضها في الشريط العلوي
+const PAGE_INFO = {
+  dashboard: ['لوحة التحكم', 'نظرة عامة على حالة النظام الزراعي بالكامل'],
+  farms:     ['إدارة المزارع', 'إضافة، تعديل، حذف، وعرض المزارع المسجلة'],
+  fields:    ['إدارة الحقول', 'إدارة الحقول التابعة لكل مزرعة'],
+  sensors:   ['إدارة المستشعرات', 'إضافة المستشعرات وتحديث حالتها'],
+  readings:  ['قراءات المستشعرات', 'تسجيل واستعراض قراءات الرطوبة والحرارة'],
+  crops:     ['إدارة المحاصيل', 'إدارة المحاصيل المزروعة في كل حقل'],
+  irrigation:['جداول الري', 'إنشاء وتحديث وحذف جداول الري'],
+  report:    ['التقرير الكامل', 'عرض شامل لجميع بيانات المزرعة وحقولها']
+};
+
+// هذه الدالة مسؤولة عن إظهار الصفحة المطلوبة وتحديث القائمة الجانبية والعنوان
+function showPage(pageName) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageName).classList.add('active');
+
+  document.querySelectorAll('.nav-link').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.page === pageName);
+  });
+
+  const [title, subtitle] = PAGE_INFO[pageName];
+  document.getElementById('pageTitle').textContent = title;
+  document.getElementById('pageSubtitle').textContent = subtitle;
+
+  // إغلاق الشريط الجانبي في الشاشات الصغيرة بعد التنقل
+  document.getElementById('sidebar').classList.remove('open');
+
+  // تحديث محتوى الصفحة المختارة بأحدث البيانات
+  refreshPage(pageName);
+}
+
+// هذه الدالة تستدعي دالة العرض المناسبة لكل صفحة عند التنقل إليها
+function refreshPage(pageName) {
+  switch (pageName) {
+    case 'dashboard':  renderDashboard(); break;
+    case 'farms':      renderFarmsTable(); break;
+    case 'fields':      populateFarmSelect('fieldsFarmSelect'); renderFieldsTable(); break;
+    case 'sensors':     populateFarmSelect('sensorsFarmSelect'); onSensorsFarmChange(); break;
+    case 'readings':    populateFarmSelect('readingsFarmSelect'); onReadingsFarmChange(); break;
+    case 'crops':       populateFarmSelect('cropsFarmSelect'); onCropsFarmChange(); break;
+    case 'irrigation':  populateFarmSelect('irrFarmSelect'); onIrrFarmChange(); break;
+    case 'report':      populateFarmSelect('reportFarmSelect'); renderReport(); break;
+  }
+}
+
+
+/* ================================================================
+   ===================  لوحة التحكم (Dashboard)  ===================
+   ================================================================ */
+
+// هذه الدالة تحسب إحصائيات شاملة عن جميع البيانات المخزنة في النظام
+function computeStats() {
+  let fields = 0, sensors = 0, activeSensors = 0, crops = 0, schedules = 0, readings = 0;
+  farms.forEach(farm => {
+    fields += farm.fields.length;
+    farm.fields.forEach(field => {
+      sensors += field.sensors.length;
+      crops += field.crops.length;
+      schedules += field.schedules.length;
+      field.sensors.forEach(s => {
+        if (s.status === 'نشط') activeSensors++;
+        readings += s.readings.length;
+      });
+    });
+  });
+  return { farms: farms.length, fields, sensors, activeSensors, crops, schedules, readings };
+}
+
+// هذه الدالة مسؤولة عن رسم بطاقات الإحصائيات في لوحة التحكم
+function renderDashboard() {
+  const st = computeStats();
+  const cards = [
+    { icon:'🌾', cls:'', num: st.farms,        lbl:'عدد المزارع' },
+    { icon:'🗂️', cls:'', num: st.fields,       lbl:'عدد الحقول' },
+    { icon:'📡', cls:'accent', num: st.sensors, lbl:'عدد المستشعرات' },
+    { icon:'✅', cls:'accent', num: st.activeSensors, lbl:'مستشعرات نشطة' },
+    { icon:'🌱', cls:'', num: st.crops,        lbl:'عدد المحاصيل' },
+    { icon:'💧', cls:'water', num: st.schedules, lbl:'جداول الري' },
+    { icon:'📈', cls:'water', num: st.readings, lbl:'إجمالي القراءات' },
+  ];
+
+  document.getElementById('dashboardCards').innerHTML = cards.map(c => `
+    <div class="card ${c.cls}">
+      <div class="card-icon">${c.icon}</div>
+      <div class="num">${c.num}</div>
+      <div class="lbl">${c.lbl}</div>
+    </div>
+  `).join('');
+
+  renderRecentReadings();
+}
+
+// هذه الدالة مسؤولة عن عرض آخر القراءات المسجلة من جميع المستشعرات في النظام
+function renderRecentReadings() {
+  const rows = [];
+  farms.forEach(farm => {
+    farm.fields.forEach(field => {
+      field.sensors.forEach(sensor => {
+        sensor.readings.forEach(r => {
+          rows.push({ farm: farm.name, field: field.name, sensor: sensor.type, reading: r });
+        });
+      });
+    });
+  });
+
+  // ترتيب القراءات من الأحدث إلى الأقدم وأخذ آخر 8 قراءات فقط
+  rows.sort((a,b) => b.reading.timestamp - a.reading.timestamp);
+  const top = rows.slice(0, 8);
+
+  const tbody = document.getElementById('recentReadingsBody');
+  if (top.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">لا توجد قراءات مسجلة حتى الآن</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = top.map(r => `
+    <tr>
+      <td>${escapeHtml(r.farm)}</td>
+      <td>${escapeHtml(r.field)}</td>
+      <td>${escapeHtml(r.sensor)}</td>
+      <td>${r.reading.moisture.toFixed(1)}</td>
+      <td>${r.reading.temperature.toFixed(1)}</td>
+      <td>${r.reading.formattedTime()}</td>
+    </tr>
+  `).join('');
+}
+
+// هذه الدالة تحول النص إلى نص آمن للعرض داخل HTML (لمنع مشاكل العرض)
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str ?? '');
+  return div.innerHTML;
+}
+
+
+/* ================================================================
+   ===================  إدارة المزارع (Farms)  =====================
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن رسم جدول المزارع المسجلة في النظام
+function renderFarmsTable() {
+  const tbody = document.getElementById('farmsBody');
+  if (farms.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">لا توجد مزارع مسجلة - ابدأ بإضافة مزرعة جديدة</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = farms.map(farm => `
+    <tr>
+      <td>${farm.id}</td>
+      <td>${escapeHtml(farm.name)}</td>
+      <td>${escapeHtml(farm.location)}</td>
+      <td><span class="badge badge-neutral">${farm.fields.length}</span></td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" onclick="openFarmModal(${farm.id})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteFarm(${farm.id})">🗑️ حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة إضافة/تعديل مزرعة وتعبئتها بالبيانات الحالية إن وُجدت
+function openFarmModal(farmId) {
+  const editing = farmId !== undefined;
+  const farm = editing ? findFarm(farmId) : null;
+
+  openModal({
+    title: editing ? 'تعديل بيانات المزرعة' : 'إضافة مزرعة جديدة',
+    fields: [
+      { name:'name', label:'اسم المزرعة', type:'text', value: farm ? farm.name : '', required:true, placeholder:'مثال: مزرعة النخيل' },
+      { name:'location', label:'الموقع', type:'text', value: farm ? farm.location : '', required:true, placeholder:'مثال: الرياض - حي الروضة' },
+    ],
+    onSubmit: (vals) => {
+      if (!vals.name.trim() || !vals.location.trim()) {
+        showAlert('يرجى تعبئة جميع الحقول المطلوبة', 'error');
+        return false;
+      }
+      if (editing) {
+        farm.update(vals.name.trim(), vals.location.trim());
+        showAlert('تم تحديث بيانات المزرعة بنجاح');
+      } else {
+        farms.push(new Farm(vals.name.trim(), vals.location.trim()));
+        showAlert('تمت إضافة المزرعة بنجاح');
+      }
+      renderFarmsTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+// هذه الدالة مسؤولة عن حذف مزرعة (مع جميع حقولها) بعد تأكيد المستخدم
+function deleteFarm(farmId) {
+  const farm = findFarm(farmId);
+  if (!farm) return;
+  const ok = confirm(`هل أنت متأكد من حذف المزرعة "${farm.name}"؟ سيتم حذف جميع حقولها وبياناتها المرتبطة.`);
+  if (!ok) return;
+  farms = farms.filter(f => f.id !== farmId);
+  showAlert('تم حذف المزرعة بنجاح');
+  renderFarmsTable();
+  renderDashboard();
+}
+
+
+/* ================================================================
+   ===================  إدارة الحقول (Fields)  =====================
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن تعبئة قائمة منسدلة بجميع المزارع المسجلة
+function populateFarmSelect(selectId) {
+  const select = document.getElementById(selectId);
+  const prevValue = select.value;
+
+  if (farms.length === 0) {
+    select.innerHTML = `<option value="">لا توجد مزارع</option>`;
+    return;
+  }
+
+  select.innerHTML = farms.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+
+  // الحفاظ على القيمة المختارة سابقًا إن كانت ما زالت موجودة
+  if (prevValue && farms.some(f => f.id === Number(prevValue))) {
+    select.value = prevValue;
+  }
+}
+
+// هذه الدالة مسؤولة عن رسم جدول الحقول التابعة للمزرعة المختارة
+function renderFieldsTable() {
+  const farmId = document.getElementById('fieldsFarmSelect').value;
+  const farm = findFarm(farmId);
+  const tbody = document.getElementById('fieldsBody');
+
+  if (!farm) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">يرجى إضافة مزرعة أولاً من صفحة "إدارة المزارع"</td></tr>`;
+    return;
+  }
+  if (farm.fields.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">لا توجد حقول مسجلة لهذه المزرعة</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = farm.fields.map(field => `
+    <tr>
+      <td>${field.id}</td>
+      <td>${escapeHtml(field.name)}</td>
+      <td>${field.area.toFixed(2)}</td>
+      <td><span class="badge badge-neutral">${field.sensors.length}</span></td>
+      <td><span class="badge badge-neutral">${field.crops.length}</span></td>
+      <td><span class="badge badge-water">${field.schedules.length}</span></td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" onclick="openFieldModal(${field.id})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteField(${field.id})">🗑️ حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة إضافة/تعديل حقل وتعبئتها بالبيانات الحالية إن وُجدت
+function openFieldModal(fieldId) {
+  const farmId = document.getElementById('fieldsFarmSelect').value;
+  const farm = findFarm(farmId);
+  if (!farm) { showAlert('يرجى اختيار مزرعة أولاً', 'error'); return; }
+
+  const editing = fieldId !== undefined;
+  const field = editing ? findField(farm, fieldId) : null;
+
+  openModal({
+    title: editing ? 'تعديل بيانات الحقل' : `إضافة حقل جديد إلى "${farm.name}"`,
+    fields: [
+      { name:'name', label:'اسم الحقل', type:'text', value: field ? field.name : '', required:true, placeholder:'مثال: حقل القمح الشمالي' },
+      { name:'area', label:'المساحة (هكتار)', type:'number', value: field ? field.area : '', required:true, step:'0.01', min:'0.01', placeholder:'مثال: 5' },
+    ],
+    onSubmit: (vals) => {
+      if (!vals.name.trim() || !vals.area || Number(vals.area) <= 0) {
+        showAlert('يرجى إدخال اسم صحيح ومساحة أكبر من الصفر', 'error');
+        return false;
+      }
+      if (editing) {
+        field.update(vals.name.trim(), vals.area);
+        showAlert('تم تحديث بيانات الحقل بنجاح');
+      } else {
+        farm.addField(vals.name.trim(), vals.area);
+        showAlert('تمت إضافة الحقل بنجاح');
+      }
+      renderFieldsTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+// هذه الدالة مسؤولة عن حذف حقل من المزرعة المختارة بعد تأكيد المستخدم
+function deleteField(fieldId) {
+  const farmId = document.getElementById('fieldsFarmSelect').value;
+  const farm = findFarm(farmId);
+  if (!farm) return;
+  const field = findField(farm, fieldId);
+  if (!field) return;
+
+  const ok = confirm(`هل أنت متأكد من حذف الحقل "${field.name}"؟ سيتم حذف جميع مستشعراته ومحاصيله وجداول ريه.`);
+  if (!ok) return;
+
+  farm.removeField(fieldId);
+  showAlert('تم حذف الحقل بنجاح');
+  renderFieldsTable();
+  renderDashboard();
+}
+
+
+/* ================================================================
+   ===================  إدارة المستشعرات (Sensors)  ================
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن تعبئة قائمة الحقول بناءً على المزرعة المختارة في صفحة المستشعرات
+function populateFieldSelect(farmId, fieldSelectId) {
+  const farm = findFarm(farmId);
+  const select = document.getElementById(fieldSelectId);
+  if (!farm || farm.fields.length === 0) {
+    select.innerHTML = `<option value="">لا توجد حقول</option>`;
+    return;
+  }
+  select.innerHTML = farm.fields.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+}
+
+// هذه الدالة تُستدعى عند تغيير المزرعة المختارة في صفحة المستشعرات لتحديث قائمة الحقول والجدول
+function onSensorsFarmChange() {
+  const farmId = document.getElementById('sensorsFarmSelect').value;
+  populateFieldSelect(farmId, 'sensorsFieldSelect');
+  renderSensorsTable();
+}
+
+// هذه الدالة مسؤولة عن رسم جدول المستشعرات الخاصة بالحقل المختار
+function renderSensorsTable() {
+  const farmId = document.getElementById('sensorsFarmSelect').value;
+  const fieldId = document.getElementById('sensorsFieldSelect').value;
+  const farm = findFarm(farmId);
+  const field = findField(farm, fieldId);
+  const tbody = document.getElementById('sensorsBody');
+
+  if (!farm || !field) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">يرجى اختيار مزرعة وحقل لعرض المستشعرات</td></tr>`;
+    return;
+  }
+  if (field.sensors.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">لا توجد مستشعرات مسجلة لهذا الحقل</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = field.sensors.map(sensor => {
+    const latest = sensor.latestReading();
+    const latestText = latest ? `${latest.moisture.toFixed(1)}% / ${latest.temperature.toFixed(1)}°C` : '—';
+    return `
+    <tr>
+      <td>${sensor.id}</td>
+      <td>${escapeHtml(sensor.type)}</td>
+      <td>${statusBadge(sensor.status)}</td>
+      <td>${sensor.readings.length}</td>
+      <td>${latestText}</td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" onclick="openSensorModal(${sensor.id})">✏️ تعديل</button>
+        <button class="btn btn-water btn-sm" onclick="openStatusModal(${sensor.id})">🔄 الحالة</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSensor(${sensor.id})">🗑️ حذف</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// هذه الدالة تنشئ شارة HTML تعكس حالة المستشعر بألوان مختلفة
+function statusBadge(status) {
+  let cls = 'badge-active';
+  if (status === 'غير نشط') cls = 'badge-inactive';
+  else if (status === 'صيانة') cls = 'badge-maint';
+  return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة إضافة/تعديل مستشعر
+function openSensorModal(sensorId) {
+  const farmId = document.getElementById('sensorsFarmSelect').value;
+  const fieldId = document.getElementById('sensorsFieldSelect').value;
+  const farm = findFarm(farmId);
+  const field = findField(farm, fieldId);
+  if (!field) { showAlert('يرجى اختيار مزرعة وحقل أولاً', 'error'); return; }
+
+  const editing = sensorId !== undefined;
+  const sensor = editing ? findSensor(field, sensorId) : null;
+
+  openModal({
+    title: editing ? 'تعديل المستشعر' : `إضافة مستشعر إلى "${field.name}"`,
+    fields: [
+      { name:'type', label:'نوع المستشعر', type:'text', value: sensor ? sensor.type : '', required:true, placeholder:'مثال: مستشعر رطوبة' },
+      { name:'status', label:'الحالة', type:'select', value: sensor ? sensor.status : 'نشط',
+        options:[{v:'نشط',l:'نشط'},{v:'غير نشط',l:'غير نشط'},{v:'صيانة',l:'تحت الصيانة'}] },
+    ],
+    onSubmit: (vals) => {
+      if (!vals.type.trim()) { showAlert('يرجى إدخال نوع المستشعر', 'error'); return false; }
+      if (editing) {
+        sensor.type = vals.type.trim();
+        sensor.changeStatus(vals.status);
+        showAlert('تم تحديث المستشعر بنجاح');
+      } else {
+        field.addSensor(vals.type.trim(), vals.status);
+        showAlert('تمت إضافة المستشعر بنجاح');
+      }
+      renderSensorsTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة سريعة لتغيير حالة مستشعر فقط
+function openStatusModal(sensorId) {
+  const farmId = document.getElementById('sensorsFarmSelect').value;
+  const fieldId = document.getElementById('sensorsFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  const sensor = findSensor(field, sensorId);
+  if (!sensor) return;
+
+  openModal({
+    title: `تغيير حالة المستشعر #${sensor.id}`,
+    fields: [
+      { name:'status', label:'الحالة الجديدة', type:'select', value: sensor.status,
+        options:[{v:'نشط',l:'نشط'},{v:'غير نشط',l:'غير نشط'},{v:'صيانة',l:'تحت الصيانة'}] },
+    ],
+    onSubmit: (vals) => {
+      sensor.changeStatus(vals.status);
+      showAlert('تم تحديث حالة المستشعر بنجاح');
+      renderSensorsTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+// هذه الدالة مسؤولة عن حذف مستشعر من الحقل المختار بعد تأكيد المستخدم
+function deleteSensor(sensorId) {
+  const farmId = document.getElementById('sensorsFarmSelect').value;
+  const fieldId = document.getElementById('sensorsFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  if (!field) return;
+
+  const sensor = findSensor(field, sensorId);
+  if (!sensor) return;
+
+  const ok = confirm(`هل أنت متأكد من حذف المستشعر "#${sensor.id} - ${sensor.type}"؟ سيتم حذف جميع قراءاته.`);
+  if (!ok) return;
+
+  field.removeSensor(sensorId);
+  showAlert('تم حذف المستشعر بنجاح');
+  renderSensorsTable();
+  renderDashboard();
+}
+
+
+/* ================================================================
+   ===================  قراءات المستشعرات (Readings)  ==============
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن تعبئة قائمة المستشعرات بناءً على الحقل المختار
+function populateSensorSelect(field, selectId) {
+  const select = document.getElementById(selectId);
+  if (!field || field.sensors.length === 0) {
+    select.innerHTML = `<option value="">لا توجد مستشعرات</option>`;
+    return;
+  }
+  select.innerHTML = field.sensors.map(s => `<option value="${s.id}">#${s.id} - ${escapeHtml(s.type)}</option>`).join('');
+}
+
+// هذه الدالة تُستدعى عند تغيير المزرعة المختارة في صفحة القراءات
+function onReadingsFarmChange() {
+  const farmId = document.getElementById('readingsFarmSelect').value;
+  populateFieldSelect(farmId, 'readingsFieldSelect');
+  onReadingsFieldChange();
+}
+
+// هذه الدالة تُستدعى عند تغيير الحقل المختار في صفحة القراءات
+function onReadingsFieldChange() {
+  const farmId = document.getElementById('readingsFarmSelect').value;
+  const fieldId = document.getElementById('readingsFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  populateSensorSelect(field, 'readingsSensorSelect');
+  renderReadingsTable();
+}
+
+// هذه الدالة مسؤولة عن رسم جدول قراءات المستشعر المختار
+function renderReadingsTable() {
+  const farmId = document.getElementById('readingsFarmSelect').value;
+  const fieldId = document.getElementById('readingsFieldSelect').value;
+  const sensorId = document.getElementById('readingsSensorSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  const sensor = findSensor(field, sensorId);
+  const tbody = document.getElementById('readingsBody');
+
+  if (!sensor) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">يرجى اختيار مزرعة وحقل ومستشعر لعرض القراءات</td></tr>`;
+    return;
+  }
+  if (sensor.readings.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">لا توجد قراءات مسجلة لهذا المستشعر</td></tr>`;
+    return;
+  }
+
+  // عرض القراءات من الأحدث إلى الأقدم
+  const readings = [...sensor.readings].reverse();
+  tbody.innerHTML = readings.map(r => `
+    <tr>
+      <td>${r.id}</td>
+      <td>${r.moisture.toFixed(1)}</td>
+      <td>${r.temperature.toFixed(1)}</td>
+      <td>${r.formattedTime()}</td>
+    </tr>
+  `).join('');
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة لتسجيل قراءة جديدة يدويًا للمستشعر المختار
+function addReadingForSelectedSensor() {
+  const farmId = document.getElementById('readingsFarmSelect').value;
+  const fieldId = document.getElementById('readingsFieldSelect').value;
+  const sensorId = document.getElementById('readingsSensorSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  const sensor = findSensor(field, sensorId);
+
+  if (!sensor) { showAlert('يرجى اختيار مزرعة وحقل ومستشعر أولاً', 'error'); return; }
+  if (sensor.status !== 'نشط') {
+    showAlert('لا يمكن تسجيل قراءة لمستشعر غير نشط، يرجى تفعيله أولاً', 'error');
+    return;
+  }
+
+  openModal({
+    title: `تسجيل قراءة جديدة - مستشعر #${sensor.id}`,
+    fields: [
+      { name:'moisture', label:'مستوى الرطوبة (%)', type:'number', value:'', required:true, step:'0.1', min:'0', max:'100', placeholder:'0 - 100' },
+      { name:'temperature', label:'درجة الحرارة (°C)', type:'number', value:'', required:true, step:'0.1', placeholder:'مثال: 27.5' },
+    ],
+    onSubmit: (vals) => {
+      const moisture = Number(vals.moisture);
+      const temperature = Number(vals.temperature);
+      if (vals.moisture === '' || vals.temperature === '') {
+        showAlert('يرجى تعبئة جميع القيم', 'error');
+        return false;
+      }
+      if (moisture < 0 || moisture > 100) {
+        showAlert('مستوى الرطوبة يجب أن يكون بين 0 و 100', 'error');
+        return false;
+      }
+      sensor.addReading(moisture, temperature);
+      showAlert('تم تسجيل القراءة بنجاح');
+      renderReadingsTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+
+/* ================================================================
+   ===================  إدارة المحاصيل (Crops)  ====================
+   ================================================================ */
+
+// هذه الدالة تُستدعى عند تغيير المزرعة المختارة في صفحة المحاصيل
+function onCropsFarmChange() {
+  const farmId = document.getElementById('cropsFarmSelect').value;
+  populateFieldSelect(farmId, 'cropsFieldSelect');
+  renderCropsTable();
+}
+
+// هذه الدالة مسؤولة عن رسم جدول المحاصيل الخاصة بالحقل المختار
+function renderCropsTable() {
+  const farmId = document.getElementById('cropsFarmSelect').value;
+  const fieldId = document.getElementById('cropsFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  const tbody = document.getElementById('cropsBody');
+
+  if (!field) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">يرجى اختيار مزرعة وحقل لعرض المحاصيل</td></tr>`;
+    return;
+  }
+  if (field.crops.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">لا توجد محاصيل مسجلة لهذا الحقل</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = field.crops.map(crop => `
+    <tr>
+      <td>${crop.id}</td>
+      <td>${escapeHtml(crop.name)}</td>
+      <td>${escapeHtml(crop.type)}</td>
+      <td>${escapeHtml(crop.plantingDate)}</td>
+      <td><span class="badge badge-neutral">${escapeHtml(crop.status)}</span></td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" onclick="openCropModal(${crop.id})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCrop(${crop.id})">🗑️ حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة إضافة/تعديل محصول
+function openCropModal(cropId) {
+  const farmId = document.getElementById('cropsFarmSelect').value;
+  const fieldId = document.getElementById('cropsFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  if (!field) { showAlert('يرجى اختيار مزرعة وحقل أولاً', 'error'); return; }
+
+  const editing = cropId !== undefined;
+  const crop = editing ? findCrop(field, cropId) : null;
+
+  openModal({
+    title: editing ? 'تعديل المحصول' : `إضافة محصول إلى "${field.name}"`,
+    fields: [
+      { name:'name', label:'اسم المحصول', type:'text', value: crop ? crop.name : '', required:true, placeholder:'مثال: طماطم' },
+      { name:'type', label:'نوع المحصول', type:'text', value: crop ? crop.type : '', required:true, placeholder:'مثال: خضروات' },
+      { name:'plantingDate', label:'تاريخ الزراعة', type:'date', value: crop ? crop.plantingDate : '', required:true },
+      { name:'status', label:'الحالة', type:'select', value: crop ? crop.status : 'ينمو',
+        options:[{v:'ينمو',l:'ينمو'},{v:'حُصد',l:'حُصد'},{v:'تالف',l:'تالف'}] },
+    ],
+    onSubmit: (vals) => {
+      if (!vals.name.trim() || !vals.type.trim() || !vals.plantingDate) {
+        showAlert('يرجى تعبئة جميع الحقول المطلوبة', 'error');
+        return false;
+      }
+      if (editing) {
+        crop.update(vals.name.trim(), vals.type.trim(), vals.status);
+        crop.plantingDate = vals.plantingDate;
+        showAlert('تم تحديث المحصول بنجاح');
+      } else {
+        field.addCrop(vals.name.trim(), vals.type.trim(), vals.plantingDate, vals.status);
+        showAlert('تمت إضافة المحصول بنجاح');
+      }
+      renderCropsTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+// هذه الدالة مسؤولة عن حذف محصول من الحقل المختار بعد تأكيد المستخدم
+function deleteCrop(cropId) {
+  const farmId = document.getElementById('cropsFarmSelect').value;
+  const fieldId = document.getElementById('cropsFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  if (!field) return;
+
+  const crop = findCrop(field, cropId);
+  if (!crop) return;
+
+  const ok = confirm(`هل أنت متأكد من حذف المحصول "${crop.name}"؟`);
+  if (!ok) return;
+
+  field.removeCrop(cropId);
+  showAlert('تم حذف المحصول بنجاح');
+  renderCropsTable();
+  renderDashboard();
+}
+
+
+/* ================================================================
+   ===================  جداول الري (Irrigation)  ===================
+   ================================================================ */
+
+// هذه الدالة تُستدعى عند تغيير المزرعة المختارة في صفحة جداول الري
+function onIrrFarmChange() {
+  const farmId = document.getElementById('irrFarmSelect').value;
+  populateFieldSelect(farmId, 'irrFieldSelect');
+  renderIrrigationTable();
+}
+
+// هذه الدالة مسؤولة عن رسم جدول جداول الري الخاصة بالحقل المختار
+function renderIrrigationTable() {
+  const farmId = document.getElementById('irrFarmSelect').value;
+  const fieldId = document.getElementById('irrFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  const tbody = document.getElementById('irrigationBody');
+
+  if (!field) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">يرجى اختيار مزرعة وحقل لعرض جداول الري</td></tr>`;
+    return;
+  }
+  if (field.schedules.length === 0) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">لا توجد جداول ري مسجلة لهذا الحقل</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = field.schedules.map(sched => `
+    <tr>
+      <td>${sched.id}</td>
+      <td>${escapeHtml(sched.date)}</td>
+      <td>${Number(sched.amount).toFixed(2)}</td>
+      <td>${irrigationStatusBadge(sched.status)}</td>
+      <td>${escapeHtml(sched.notes || '—')}</td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" onclick="openIrrigationModal(${sched.id})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${sched.id})">🗑️ حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// هذه الدالة تنشئ شارة HTML تعكس حالة جدول الري بألوان مختلفة
+function irrigationStatusBadge(status) {
+  let cls = 'badge-water';
+  if (status === 'مكتمل') cls = 'badge-active';
+  else if (status === 'ملغى') cls = 'badge-inactive';
+  return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+}
+
+// هذه الدالة مسؤولة عن فتح نافذة إنشاء/تعديل جدول ري
+function openIrrigationModal(scheduleId) {
+  const farmId = document.getElementById('irrFarmSelect').value;
+  const fieldId = document.getElementById('irrFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  if (!field) { showAlert('يرجى اختيار مزرعة وحقل أولاً', 'error'); return; }
+
+  const editing = scheduleId !== undefined;
+  const sched = editing ? findSchedule(field, scheduleId) : null;
+
+  openModal({
+    title: editing ? 'تعديل جدول الري' : `إنشاء جدول ري لـ "${field.name}"`,
+    fields: [
+      { name:'date', label:'تاريخ الري', type:'date', value: sched ? sched.date : '', required:true },
+      { name:'amount', label:'كمية المياه (لتر)', type:'number', value: sched ? sched.amount : '', required:true, step:'0.1', min:'0.1', placeholder:'مثال: 500' },
+      { name:'status', label:'الحالة', type:'select', value: sched ? sched.status : 'مجدول',
+        options:[{v:'مجدول',l:'مجدول'},{v:'مكتمل',l:'مكتمل'},{v:'ملغى',l:'ملغى'}] },
+      { name:'notes', label:'ملاحظات (اختياري)', type:'textarea', value: sched ? sched.notes : '', placeholder:'مثال: ري صباحي خفيف' },
+    ],
+    onSubmit: (vals) => {
+      if (!vals.date || !vals.amount || Number(vals.amount) <= 0) {
+        showAlert('يرجى إدخال تاريخ صحيح وكمية مياه أكبر من الصفر', 'error');
+        return false;
+      }
+      if (editing) {
+        sched.update(vals.date, vals.amount, vals.notes, vals.status);
+        showAlert('تم تحديث جدول الري بنجاح');
+      } else {
+        field.addSchedule(vals.date, vals.amount, vals.notes, vals.status);
+        showAlert('تم إنشاء جدول الري بنجاح');
+      }
+      renderIrrigationTable();
+      renderDashboard();
+      return true;
+    }
+  });
+}
+
+// هذه الدالة مسؤولة عن حذف جدول ري من الحقل المختار بعد تأكيد المستخدم
+function deleteSchedule(scheduleId) {
+  const farmId = document.getElementById('irrFarmSelect').value;
+  const fieldId = document.getElementById('irrFieldSelect').value;
+  const field = findField(findFarm(farmId), fieldId);
+  if (!field) return;
+
+  const sched = findSchedule(field, scheduleId);
+  if (!sched) return;
+
+  const ok = confirm(`هل أنت متأكد من حذف جدول الري بتاريخ "${sched.date}"؟`);
+  if (!ok) return;
+
+  field.removeSchedule(scheduleId);
+  showAlert('تم حذف جدول الري بنجاح');
+  renderIrrigationTable();
+  renderDashboard();
+}
+
+
+/* ================================================================
+   ===================  التقرير الكامل (Report)  ===================
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن عرض جميع بيانات المزرعة المختارة بشكل شجري شامل
+function renderReport() {
+  const farmId = document.getElementById('reportFarmSelect').value;
+  const farm = findFarm(farmId);
+  const container = document.getElementById('reportContainer');
+
+  if (!farm) {
+    container.innerHTML = `<div class="empty-state"><span class="ic">🌾</span>يرجى إضافة مزرعة أولاً لعرض تقريرها الكامل</div>`;
+    return;
+  }
+
+  if (farm.fields.length === 0) {
+    container.innerHTML = `
+      <div class="tree">
+        <div class="tree-item">
+          <h4>🌾 ${escapeHtml(farm.name)}</h4>
+          <div class="meta">الموقع: ${escapeHtml(farm.location)} | عدد الحقول: 0</div>
+          <div class="empty-state"><span class="ic">🗂️</span>لا توجد حقول مسجلة في هذه المزرعة</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const fieldsHtml = farm.fields.map(field => {
+
+    // ----- جدول المستشعرات والقراءات -----
+    let sensorsHtml = '<div class="empty-state" style="padding:14px;">لا توجد مستشعرات</div>';
+    if (field.sensors.length > 0) {
+      sensorsHtml = `
+        <table class="mini-table">
+          <thead><tr><th>#</th><th>النوع</th><th>الحالة</th><th>القراءات</th><th>آخر قراءة</th></tr></thead>
+          <tbody>
+            ${field.sensors.map(s => {
+              const latest = s.latestReading();
+              const latestText = latest ? `${latest.moisture.toFixed(1)}% / ${latest.temperature.toFixed(1)}°C @ ${latest.formattedTime()}` : '—';
+              return `<tr><td>${s.id}</td><td>${escapeHtml(s.type)}</td><td>${statusBadge(s.status)}</td><td>${s.readings.length}</td><td>${latestText}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    // ----- جدول المحاصيل -----
+    let cropsHtml = '<div class="empty-state" style="padding:14px;">لا توجد محاصيل</div>';
+    if (field.crops.length > 0) {
+      cropsHtml = `
+        <table class="mini-table">
+          <thead><tr><th>#</th><th>الاسم</th><th>النوع</th><th>تاريخ الزراعة</th><th>الحالة</th></tr></thead>
+          <tbody>
+            ${field.crops.map(c => `<tr><td>${c.id}</td><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.type)}</td><td>${escapeHtml(c.plantingDate)}</td><td>${escapeHtml(c.status)}</td></tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    // ----- جدول جداول الري -----
+    let schedHtml = '<div class="empty-state" style="padding:14px;">لا توجد جداول ري</div>';
+    if (field.schedules.length > 0) {
+      schedHtml = `
+        <table class="mini-table">
+          <thead><tr><th>#</th><th>التاريخ</th><th>الكمية (لتر)</th><th>الحالة</th><th>ملاحظات</th></tr></thead>
+          <tbody>
+            ${field.schedules.map(s => `<tr><td>${s.id}</td><td>${escapeHtml(s.date)}</td><td>${Number(s.amount).toFixed(2)}</td><td>${escapeHtml(s.status)}</td><td>${escapeHtml(s.notes || '—')}</td></tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    return `
+      <div class="tree-item">
+        <h4>🗂️ ${escapeHtml(field.name)}</h4>
+        <div class="meta">المساحة: ${field.area.toFixed(2)} هكتار | المستشعرات: ${field.sensors.length} | المحاصيل: ${field.crops.length} | جداول الري: ${field.schedules.length}</div>
+        <div style="font-weight:700; font-size:12.5px; color:var(--color-primary); margin-top:8px;">📡 المستشعرات والقراءات</div>
+        ${sensorsHtml}
+        <div style="font-weight:700; font-size:12.5px; color:var(--color-primary); margin-top:10px;">🌱 المحاصيل</div>
+        ${cropsHtml}
+        <div style="font-weight:700; font-size:12.5px; color:var(--color-primary); margin-top:10px;">💧 جداول الري</div>
+        ${schedHtml}
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="tree">
+      <div class="tree-item" style="border-color:var(--color-primary-light);">
+        <h4>🌾 ${escapeHtml(farm.name)}</h4>
+        <div class="meta">الموقع: ${escapeHtml(farm.location)} | عدد الحقول: ${farm.fields.length}</div>
+      </div>
+      ${fieldsHtml}
+    </div>
+  `;
+}
+
+
+/* ================================================================
+   ===================  النافذة المنبثقة العامة (Modal)  ===========
+   ================================================================ */
+
+// متغير يحتفظ بدالة الحفظ الحالية المرتبطة بالنافذة المنبثقة المفتوحة
+let currentModalSubmit = null;
+
+// هذه الدالة مسؤولة عن فتح النافذة المنبثقة وبناء حقول النموذج ديناميكيًا
+function openModal({ title, fields, onSubmit }) {
+  document.getElementById('modalTitle').textContent = title;
+
+  const body = document.getElementById('modalBody');
+  body.innerHTML = fields.map(f => {
+    if (f.type === 'select') {
+      const options = f.options.map(o => `<option value="${o.v}" ${o.v === f.value ? 'selected' : ''}>${o.l}</option>`).join('');
+      return `
+        <div class="field-group">
+          <label>${f.label}</label>
+          <select name="${f.name}">${options}</select>
+        </div>`;
+    }
+    if (f.type === 'textarea') {
+      return `
+        <div class="field-group">
+          <label>${f.label}</label>
+          <textarea name="${f.name}" rows="2" placeholder="${f.placeholder || ''}">${escapeHtml(f.value || '')}</textarea>
+        </div>`;
+    }
+    const extra = [];
+    if (f.required) extra.push('required');
+    if (f.step !== undefined) extra.push(`step="${f.step}"`);
+    if (f.min !== undefined) extra.push(`min="${f.min}"`);
+    if (f.max !== undefined) extra.push(`max="${f.max}"`);
+    return `
+      <div class="field-group">
+        <label>${f.label}</label>
+        <input type="${f.type}" name="${f.name}" value="${escapeHtml(f.value ?? '')}" placeholder="${f.placeholder || ''}" ${extra.join(' ')}>
+      </div>`;
+  }).join('');
+
+  currentModalSubmit = onSubmit;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+// هذه الدالة مسؤولة عن إغلاق النافذة المنبثقة وإعادة تهيئة حالتها
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  document.getElementById('modalBody').innerHTML = '';
+  currentModalSubmit = null;
+}
+
+// هذه الدالة تتعامل مع حدث إرسال نموذج النافذة المنبثقة وتجمع القيم وتستدعي دالة الحفظ
+document.getElementById('modalForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  if (!currentModalSubmit) return;
+
+  const formData = new FormData(e.target);
+  const values = {};
+  formData.forEach((v, k) => { values[k] = v; });
+
+  // تأكد من تضمين قيم الـ select حتى لو لم تتغير (FormData يغطيها بشكل افتراضي)
+  const result = currentModalSubmit(values);
+  if (result !== false) closeModal();
+});
+
+// إغلاق النافذة المنبثقة عند الضغط خارجها مباشرة (على الطبقة الخلفية)
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+
+/* ================================================================
+   ===================  تهيئة النظام عند بدء التشغيل  ===============
+   ================================================================ */
+
+// هذه الدالة مسؤولة عن ربط أزرار التنقل في الشريط الجانبي بدالة عرض الصفحات
+function initNavigation() {
+  document.querySelectorAll('.nav-link').forEach(btn => {
+    btn.addEventListener('click', () => showPage(btn.dataset.page));
+  });
+
+  // زر فتح/إغلاق الشريط الجانبي في الشاشات الصغيرة
+  document.getElementById('menuToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+}
+
+// هذه الدالة هي نقطة انطلاق النظام: تُحمّل البيانات التجريبية وتُهيئ الواجهة بالكامل
+function initApp() {
+  seedSampleData();
+  initNavigation();
+
+  // تعبئة جميع القوائم المنسدلة للمزارع في كل الصفحات
+  ['fieldsFarmSelect','sensorsFarmSelect','readingsFarmSelect','cropsFarmSelect','irrFarmSelect','reportFarmSelect']
+    .forEach(id => populateFarmSelect(id));
+
+  // عرض الصفحة الافتراضية (لوحة التحكم)
+  showPage('dashboard');
+
+  // تهيئة الصفحات الأخرى لأول مرة لضمان جاهزية القوائم المتتالية
+  onSensorsFarmChange();
+  onReadingsFarmChange();
+  onCropsFarmChange();
+  onIrrFarmChange();
+  renderFieldsTable();
+  renderReport();
+}
+
+// تشغيل النظام بعد تحميل الصفحة بالكامل
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
